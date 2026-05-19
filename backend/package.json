@@ -1,0 +1,31 @@
+{
+  "name": "open-pixel-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/stop-existing-dev-server.mjs",
+    "dev": "node --env-file=.env --watch src/index.js",
+    "start": "node src/index.js",
+    "lint": "eslint src",
+    "build": "node --check src/index.js && node --check src/store.js && node --check src/canvasExport.js && node --check src/moderation.js && node --check scripts/smoke-test.mjs && node --check scripts/reset-local-state.mjs && node --check scripts/stop-existing-dev-server.mjs",
+    "smoke": "node scripts/smoke-test.mjs",
+    "reset:local": "node scripts/reset-local-state.mjs"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "pngjs": "^7.0.0",
+    "redis": "^5.8.3",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "socket.io-client": "^4.8.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

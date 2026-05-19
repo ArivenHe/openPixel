@@ -1,0 +1,132 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  backend-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Backend lint
+        run: npm run lint
+        working-directory: backend
+
+      - name: Backend build check
+        run: npm run build
+        working-directory: backend
+
+  frontend-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Frontend lint
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Frontend build check
+        run: npm run build
+        working-directory: frontend
+
+  deploy:
+    needs: [backend-check, frontend-check]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: SERVER
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT || '22' }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            set -eu
+
+            DEPLOY_PATH="${{ secrets.SERVER_DEPLOY_PATH || '/www/wwwroot/openPixel' }}"
+            cd "$DEPLOY_PATH" || { echo "Directory not found: $DEPLOY_PATH"; exit 1; }
+
+            echo "Step 1: Syncing latest main branch..."
+            git fetch --all --prune
+            git reset --hard origin/main
+
+            if command -v docker-compose >/dev/null 2>&1; then
+              COMPOSE_CMD="docker-compose"
+            else
+              COMPOSE_CMD="docker compose"
+            fi
+
+            echo "Step 2: Stopping old containers and freeing ports..."
+            $COMPOSE_CMD down --remove-orphans
+
+            BUILD_NUMBER="${{ github.run_number }}"
+            SHORT_SHA=$(git rev-parse --short HEAD)
+            PKG_VER=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -1)
+            PKG_VER="${PKG_VER:-1.0.0}"
+            APP_VER="v$PKG_VER.$BUILD_NUMBER-$SHORT_SHA"
+
+            export ADMIN_TOKEN="${{ secrets.ADMIN_TOKEN }}"
+            export VITE_APP_VERSION="$APP_VER"
+
+            if [ -z "${ADMIN_TOKEN:-}" ]; then
+              echo "Warning: ADMIN_TOKEN secret is empty. Admin pages will reject token login."
+            fi
+
+            echo "Step 3: Building and starting OpenPixel: $APP_VER"
+            $COMPOSE_CMD up -d --build
+
+            echo "Step 4: Waiting for services..."
+            sleep 15
+            $COMPOSE_CMD ps
+
+            for service in redis backend frontend; do
+              CONTAINER_ID=$($COMPOSE_CMD ps -q "$service")
+              if [ -z "$CONTAINER_ID" ] || [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER_ID")" != "true" ]; then
+                echo "Critical Error: Service $service is not running!"
+                $COMPOSE_CMD logs --tail=120 "$service"
+                exit 1
+              fi
+            done
+
+            if command -v curl >/dev/null 2>&1; then
+              curl -fsS http://127.0.0.1:3000/api/health >/dev/null
+              curl -fsS http://127.0.0.1/ >/dev/null
+            fi
+
+            echo "Deployment finished successfully."
