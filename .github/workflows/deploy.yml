@@ -125,7 +125,9 @@ jobs:
             done
 
             if command -v curl >/dev/null 2>&1; then
+              echo "Checking nginx -> backend health endpoint..."
               curl -fsS http://127.0.0.1:8088/api/health >/dev/null
+              echo "Checking nginx static frontend..."
               curl -fsS http://127.0.0.1:8088/ >/dev/null
             fi
 
