@@ -43,7 +43,7 @@ npm run dev
 如果你本地装了 Redis，可设置：
 
 ```bash
-export REDIS_URL=redis://127.0.0.1:6379
+export REDIS_URL=redis://127.0.0.1:6380
 ```
 
 否则后端会自动使用本地文件持久化模式，方便直接演示。
