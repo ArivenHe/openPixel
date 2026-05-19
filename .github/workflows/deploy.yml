@@ -125,8 +125,8 @@ jobs:
             done
 
             if command -v curl >/dev/null 2>&1; then
-              curl -fsS http://127.0.0.1:3000/api/health >/dev/null
-              curl -fsS http://127.0.0.1/ >/dev/null
+              curl -fsS http://127.0.0.1:8088/api/health >/dev/null
+              curl -fsS http://127.0.0.1:8088/ >/dev/null
             fi
 
             echo "Deployment finished successfully."
