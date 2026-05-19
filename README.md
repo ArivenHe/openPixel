@@ -72,8 +72,8 @@ docker compose up --build
 
 访问：
 
-- 移动端：`http://localhost/mobile`
-- 大屏端：`http://localhost/dashboard`
+- 移动端：`http://localhost:8088/mobile`
+- 大屏端：`http://localhost:8088/dashboard`
 
 生产部署使用：
 
