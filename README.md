@@ -75,6 +75,8 @@ docker compose up --build
 - 移动端：`http://localhost:8088/mobile`
 - 大屏端：`http://localhost:8088/dashboard`
 
+Docker 部署时只暴露前端 nginx 端口，后端接口通过同域 `/api` 与 `/socket.io` 由 nginx 转发到 Docker 内网中的后端服务；Redis 也只在 Docker 内网中使用。
+
 生产部署使用：
 
 ```bash

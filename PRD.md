@@ -104,8 +104,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
@@ -123,8 +121,6 @@ services:
 
   redis:
     image: redis:alpine
-    ports:
-      - "6380:6379"
 
 ```
 
