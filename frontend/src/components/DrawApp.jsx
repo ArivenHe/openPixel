@@ -24,6 +24,13 @@ export const DrawApp = () => {
 
     const socket = createSocket("admin", authToken);
     socketRef.current = socket;
+    const applyActivityState = (snapshot) => {
+      setParticipants(snapshot.participants ?? []);
+      setLotteryPool(snapshot.lotteryPool ?? []);
+      setLotteryDraws(snapshot.lotteryDraws ?? []);
+      setPrizes(snapshot.prizes ?? []);
+    };
+
     socket.on("connect", () => {
       setConnected(true);
       setAuthError("");
@@ -38,11 +45,10 @@ export const DrawApp = () => {
       setAuthToken("");
       socket.disconnect();
     });
-    socket.on("snapshot", (snapshot) => {
-      setParticipants(snapshot.participants ?? []);
-      setLotteryPool(snapshot.lotteryPool ?? []);
-      setLotteryDraws(snapshot.lotteryDraws ?? []);
-      setPrizes(snapshot.prizes ?? []);
+    socket.on("snapshot", applyActivityState);
+    socket.on("activity:reset", (snapshot) => {
+      applyActivityState(snapshot);
+      setSelectedStudentId("");
     });
     socket.on("participant:updated", (participant) => {
       setParticipants((current) => {

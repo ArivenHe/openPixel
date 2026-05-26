@@ -80,27 +80,7 @@ export const MobileApp = () => {
   useEffect(() => {
     const socket = createSocket("mobile");
     socketRef.current = socket;
-
-    socket.on("connect", () => setConnected(true));
-    socket.on("disconnect", () => setConnected(false));
-    socket.on("snapshot", (snapshot) => {
-      setTopics(snapshot.topics);
-      setIdeas(snapshot.ideas);
-      setCodeTasks(snapshot.codeTasks ?? []);
-      setStarredIdeaIds(new Set(snapshot.starredIdeaIds));
-      setParticipant(snapshot.participant);
-      setPrizes(snapshot.prizes);
-      setStudentIdInput(snapshot.participant?.studentId ?? "");
-      setSelectedTopicId(snapshot.topics[0]?.id ?? "");
-      setHydrated(true);
-    });
-    socket.on("idea:created", (idea) => {
-      setIdeas((current) => [...current, idea]);
-    });
-    socket.on("idea:starred", (idea) => {
-      setIdeas((current) => current.map((item) => (item.id === idea.id ? idea : item)));
-    });
-    socket.on("topics:updated", (nextTopics) => {
+    const applyTopics = (nextTopics) => {
       setTopics(nextTopics);
       setSelectedTopicId((current) =>
         nextTopics.some((topic) => topic.id === current) ? current : nextTopics[0]?.id ?? ""
@@ -108,7 +88,42 @@ export const MobileApp = () => {
       setIdeaFilterTopicId((current) =>
         current === "all" || nextTopics.some((topic) => topic.id === current) ? current : "all"
       );
+    };
+    const applyActivityState = (snapshot) => {
+      const nextTopics = snapshot.topics ?? [];
+      applyTopics(nextTopics);
+      setIdeas(snapshot.ideas ?? []);
+      setStarredIdeaIds(new Set(snapshot.starredIdeaIds ?? []));
+      setParticipant(snapshot.participant ?? null);
+      setPrizes(snapshot.prizes ?? []);
+    };
+
+    socket.on("connect", () => setConnected(true));
+    socket.on("disconnect", () => setConnected(false));
+    socket.on("snapshot", (snapshot) => {
+      applyActivityState(snapshot);
+      setCodeTasks(snapshot.codeTasks ?? []);
+      setStudentIdInput(snapshot.participant?.studentId ?? "");
+      setHydrated(true);
     });
+    socket.on("activity:reset", (snapshot) => {
+      applyActivityState(snapshot);
+      setStudentIdInput("");
+      setIdeaText("");
+      setShareText("");
+      setSelectedChoices({});
+      setIdeaQuery("");
+      setIdeaSort("hot");
+      setMutedUntil(0);
+      setToast("活动数据已清空，请重新登记学号");
+    });
+    socket.on("idea:created", (idea) => {
+      setIdeas((current) => [...current, idea]);
+    });
+    socket.on("idea:starred", (idea) => {
+      setIdeas((current) => current.map((item) => (item.id === idea.id ? idea : item)));
+    });
+    socket.on("topics:updated", applyTopics);
     socket.on("participant:updated", (nextParticipant) => {
       setParticipant((current) =>
         nextParticipant.studentId === current?.studentId || !current ? nextParticipant : current

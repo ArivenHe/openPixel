@@ -18,17 +18,23 @@ export const DashboardApp = () => {
   useEffect(() => {
     const socket = createSocket("dashboard");
     const timers = cleanupTimers.current;
+    const applyActivityState = (snapshot) => {
+      setTopics(snapshot.topics ?? []);
+      setIdeas(snapshot.ideas ?? []);
+      setCodeSubmissions(snapshot.codeSubmissions ?? []);
+      setStats(snapshot.stats ?? { activeContributors: 0, totalCommits: 0 });
+      setPrizes(snapshot.prizes ?? []);
+      setLotteryDraws(snapshot.lotteryDraws ?? []);
+      setPulseIdeaId("");
+    };
+
     socket.on("connect", () => setConnected(true));
     socket.on("disconnect", () => setConnected(false));
     socket.on("snapshot", (snapshot) => {
-      setTopics(snapshot.topics);
-      setIdeas(snapshot.ideas);
+      applyActivityState(snapshot);
       setCodeTasks(snapshot.codeTasks ?? []);
-      setCodeSubmissions(snapshot.codeSubmissions ?? []);
-      setStats(snapshot.stats);
-      setPrizes(snapshot.prizes);
-      setLotteryDraws(snapshot.lotteryDraws ?? []);
     });
+    socket.on("activity:reset", applyActivityState);
     socket.on("idea:created", (idea) => {
       setIdeas((current) => [...current, idea]);
       setPulseIdeaId(idea.id);

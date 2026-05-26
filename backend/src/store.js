@@ -110,6 +110,9 @@ const normalizeCodeSubmission = (submission) => ({
   ...submission
 });
 
+const createBlankCanvas = (canvasSize) =>
+  Array.from({ length: canvasSize ** 2 }, () => "#ffffff");
+
 const createParticipant = (studentId, createdAt) => ({
   studentId,
   ideaCount: 0,
@@ -150,7 +153,7 @@ export class OpenPixelStore {
     this.redis = null;
     this.topics = normalizeTopics(DEFAULT_TOPICS);
     this.ideas = [];
-    this.canvas = Array.from({ length: config.canvasSize ** 2 }, () => "#ffffff");
+    this.canvas = createBlankCanvas(config.canvasSize);
     this.pixelEvents = [];
     this.codeSubmissions = [];
     this.tokens = new Map();
@@ -400,6 +403,69 @@ export class OpenPixelStore {
     this.adminAuthStates.delete(authKey);
     if (this.redis) {
       await this.redis.hDel(STATE_KEYS.adminAuthStates, authKey);
+    } else {
+      await this.persistFallback();
+    }
+  }
+
+  async findRedisKeys(patterns) {
+    const keys = [];
+
+    for (const pattern of patterns) {
+      if (typeof this.redis.scanIterator === "function") {
+        for await (const result of this.redis.scanIterator({ MATCH: pattern, COUNT: 100 })) {
+          if (Array.isArray(result)) {
+            keys.push(...result);
+          } else {
+            keys.push(result);
+          }
+        }
+      } else {
+        keys.push(...(await this.redis.keys(pattern)));
+      }
+    }
+
+    return [...new Set(keys)];
+  }
+
+  async resetAllData() {
+    this.topics = normalizeTopics(DEFAULT_TOPICS);
+    this.ideas = [];
+    this.canvas = createBlankCanvas(this.config.canvasSize);
+    this.pixelEvents = [];
+    this.codeSubmissions = [];
+    this.tokens = new Map();
+    this.mutes = new Map();
+    this.starredByIdea = new Map();
+    this.participants = new Map();
+    this.deviceStudents = new Map();
+    this.blindBoxShares = [];
+    this.prizes = normalizePrizes(DEFAULT_PRIZES, { seedDefaults: true });
+    this.lotteryDraws = [];
+    this.adminAuthStates = new Map();
+
+    if (this.redis) {
+      const dynamicKeys = await this.findRedisKeys([
+        `${STATE_KEYS.tokenPrefix}*`,
+        `${STATE_KEYS.mutePrefix}*`,
+        `${STATE_KEYS.starPrefix}*`
+      ]);
+      const keys = [
+        STATE_KEYS.topics,
+        STATE_KEYS.ideas,
+        STATE_KEYS.pixels,
+        STATE_KEYS.pixelEvents,
+        STATE_KEYS.codeSubmissions,
+        STATE_KEYS.participants,
+        STATE_KEYS.deviceStudents,
+        STATE_KEYS.blindBoxShares,
+        STATE_KEYS.prizes,
+        STATE_KEYS.lotteryDraws,
+        STATE_KEYS.adminAuthStates,
+        ...dynamicKeys
+      ];
+
+      await this.redis.del([...new Set(keys)]);
     } else {
       await this.persistFallback();
     }

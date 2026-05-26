@@ -99,14 +99,14 @@ docker compose up -d --build
 
 需要在 GitHub 的 `SERVER` environment 或 Actions secrets 中配置：
 
-| Secret | 说明 |
-| --- | --- |
-| `SERVER_HOST` | 服务器 IP 或域名 |
-| `SERVER_USER` | SSH 用户名 |
-| `SERVER_PORT` | SSH 端口，默认可填 `22` |
-| `SERVER_PASSWORD` | SSH 密码 |
+| Secret               | 说明                                        |
+| -------------------- | ----------------------------------------- |
+| `SERVER_HOST`        | 服务器 IP 或域名                                |
+| `SERVER_USER`        | SSH 用户名                                   |
+| `SERVER_PORT`        | SSH 端口，默认可填 `22`                          |
+| `SERVER_PASSWORD`    | SSH 密码                                    |
 | `SERVER_DEPLOY_PATH` | 服务器上的项目目录，默认脚本使用 `/www/wwwroot/openPixel` |
-| `ADMIN_TOKEN` | 管理台 / 抽奖页 token |
+| `ADMIN_TOKEN`        | 管理台 / 抽奖页 token                           |
 
 首次部署前，服务器目录需要已经 clone 好本仓库，并安装 Docker 与 Docker Compose。
 
@@ -134,6 +134,8 @@ npm run smoke
 cd backend
 npm run reset:local
 ```
+
+也可以进入管理台，在“危险操作”中点击“清空所有数据”，会实时清空当前运行环境中的活动数据并恢复默认话题与奖品。
 
 ## 主要能力
 
@@ -180,18 +182,18 @@ npm run reset:local
 
 ## 可配置环境变量
 
-| 变量 | 默认值 | 说明 |
-| --- | --- | --- |
-| `PORT` | `3000` | 后端端口 |
-| `REDIS_URL` | 空 | Redis 连接地址 |
-| `MUTE_DURATION_MS` | `300000` | 敏感词命中后的禁言时长 |
-| `TOKEN_CAPACITY` | `5` | 兼容旧像素模块的能量上限 |
-| `TOKEN_REFILL_MS` | `60000` | 兼容旧像素模块的能量恢复间隔 |
-| `CLIENT_ORIGIN` | `*` | CORS 来源 |
-| `ADMIN_TOKEN` | 空 | 管理台 / 抽奖操作页 / 抽奖展示大屏管理员口令，生产环境建议设置 |
-| `ADMIN_AUTH_MAX_FAILURES` | `3` | 管理 token 连续失败上限 |
-| `ADMIN_AUTH_FAILURE_WINDOW_MS` | `600000` | 连续失败统计窗口 |
-| `ADMIN_AUTH_BAN_DURATION_MS` | `600000` | 达到失败上限后的封禁时长 |
+| 变量                             | 默认值      | 说明                                 |
+| ------------------------------ | -------- | ---------------------------------- |
+| `PORT`                         | `3000`   | 后端端口                               |
+| `REDIS_URL`                    | 空        | Redis 连接地址                         |
+| `MUTE_DURATION_MS`             | `300000` | 敏感词命中后的禁言时长                        |
+| `TOKEN_CAPACITY`               | `5`      | 兼容旧像素模块的能量上限                       |
+| `TOKEN_REFILL_MS`              | `60000`  | 兼容旧像素模块的能量恢复间隔                     |
+| `CLIENT_ORIGIN`                | `*`      | CORS 来源                            |
+| `ADMIN_TOKEN`                  | 空        | 管理台 / 抽奖操作页 / 抽奖展示大屏管理员口令，生产环境建议设置 |
+| `ADMIN_AUTH_MAX_FAILURES`      | `3`      | 管理 token 连续失败上限                    |
+| `ADMIN_AUTH_FAILURE_WINDOW_MS` | `600000` | 连续失败统计窗口                           |
+| `ADMIN_AUTH_BAN_DURATION_MS`   | `600000` | 达到失败上限后的封禁时长                       |
 
 ## CI/CD
 

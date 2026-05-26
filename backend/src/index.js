@@ -75,6 +75,19 @@ const buildSnapshot = async (deviceId, role) => ({
   blindBoxShares: role === "admin" ? store.getBlindBoxShares() : undefined
 });
 
+const buildActivityResetState = () => ({
+  topics: store.getTopics(),
+  ideas: store.getIdeas(),
+  codeSubmissions: store.getCodeSubmissions(),
+  canvas: store.getCanvas(),
+  stats: getStats(),
+  prizes: store.getPrizeSummaries(),
+  lotteryPool: store.getLotteryPool(),
+  lotteryDraws: store.getLotteryDraws(),
+  participants: store.getParticipants(),
+  blindBoxShares: store.getBlindBoxShares()
+});
+
 const getClientIp = (socket) => {
   const forwarded = socket.handshake.headers["x-forwarded-for"];
   return Array.isArray(forwarded)
@@ -584,6 +597,18 @@ io.on("connection", async (socket) => {
     }
 
     ack(result);
+  });
+
+  socket.on("admin:reset-data", async (_payload = {}, ack = () => {}) => {
+    if (role !== "admin") {
+      ack({ ok: false, reason: "FORBIDDEN" });
+      return;
+    }
+
+    await store.resetAllData();
+    const snapshot = buildActivityResetState();
+    io.emit("activity:reset", snapshot);
+    ack({ ok: true, snapshot });
   });
 
   socket.on("lottery:draw", async (payload = {}, ack = () => {}) => {

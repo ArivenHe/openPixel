@@ -60,6 +60,7 @@ export const AdminApp = () => {
   const [bannedUntil, setBannedUntil] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [toast, setToast] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (!authToken) {
@@ -68,6 +69,13 @@ export const AdminApp = () => {
 
     const socket = createSocket("admin", authToken);
     socketRef.current = socket;
+    const applyActivityState = (snapshot) => {
+      setTopics(snapshot.topics ?? []);
+      setIdeas(snapshot.ideas ?? []);
+      setParticipants(snapshot.participants ?? []);
+      setPrizes(snapshot.prizes ?? DEFAULT_PRIZES);
+    };
+
     socket.on("connect", () => {
       setConnected(true);
       setAuthError("");
@@ -82,11 +90,11 @@ export const AdminApp = () => {
       setAuthToken("");
       socket.disconnect();
     });
-    socket.on("snapshot", (snapshot) => {
-      setTopics(snapshot.topics ?? []);
-      setIdeas(snapshot.ideas ?? []);
-      setParticipants(snapshot.participants ?? []);
-      setPrizes(snapshot.prizes);
+    socket.on("snapshot", applyActivityState);
+    socket.on("activity:reset", (snapshot) => {
+      applyActivityState(snapshot);
+      setNewTopicTitle("");
+      setNewPrize(NEW_PRIZE_TEMPLATE);
     });
     socket.on("topics:updated", setTopics);
     socket.on("idea:created", (idea) => setIdeas((current) => [...current, idea]));
@@ -270,6 +278,29 @@ export const AdminApp = () => {
     });
   };
 
+  const resetAllData = () => {
+    if (resetting || !socketRef.current) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "确定要清空所有活动数据吗？这会清空学号、创意、提交、盲盒、抽奖、核销记录，并恢复默认话题和奖品。"
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setResetting(true);
+    socketRef.current.emit("admin:reset-data", {}, (response) => {
+      setResetting(false);
+      if (response.ok) {
+        setToast("所有活动数据已清空");
+        return;
+      }
+      setToast("清空失败，请稍后重试");
+    });
+  };
+
   if (!connected) {
     return (
       <main className="auth-shell">
@@ -332,6 +363,16 @@ export const AdminApp = () => {
             <a href="/api/export/blind-box-shares">blind_box_shares.json</a>
             <a href="/api/export/lottery">lottery_draws.json</a>
           </div>
+        </article>
+        <article className="panel danger-zone">
+          <p className="eyebrow">危险操作</p>
+          <h2>清空所有数据</h2>
+          <p className="muted">
+            会清空学号、创意、代码提交、盲盒、抽奖、核销、画布和设备状态，并恢复默认话题与奖品。
+          </p>
+          <button type="button" className="danger-button" onClick={resetAllData} disabled={resetting}>
+            {resetting ? "正在清空…" : "清空所有数据"}
+          </button>
         </article>
       </section>
 

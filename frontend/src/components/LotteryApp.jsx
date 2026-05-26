@@ -23,6 +23,15 @@ export const LotteryApp = () => {
     }
 
     const socket = createSocket("admin", authToken);
+    const applyActivityState = (snapshot) => {
+      const nextDraws = snapshot.lotteryDraws ?? [];
+      setLotteryPool(snapshot.lotteryPool ?? []);
+      setLotteryDraws(nextDraws);
+      drawnStudentIdsRef.current = new Set(nextDraws.map((draw) => draw.studentId));
+      setPrizes(snapshot.prizes ?? []);
+      setLatestDraw(nextDraws.at(-1) ?? null);
+    };
+
     socket.on("connect", () => {
       setConnected(true);
       setAuthError("");
@@ -37,13 +46,8 @@ export const LotteryApp = () => {
       setAuthToken("");
       socket.disconnect();
     });
-    socket.on("snapshot", (snapshot) => {
-      setLotteryPool(snapshot.lotteryPool ?? []);
-      setLotteryDraws(snapshot.lotteryDraws ?? []);
-      drawnStudentIdsRef.current = new Set((snapshot.lotteryDraws ?? []).map((draw) => draw.studentId));
-      setPrizes(snapshot.prizes ?? []);
-      setLatestDraw(snapshot.lotteryDraws?.at(-1) ?? null);
-    });
+    socket.on("snapshot", applyActivityState);
+    socket.on("activity:reset", applyActivityState);
     socket.on("participant:updated", (participant) => {
       setLotteryPool((current) => {
         const exists = current.some((item) => item.studentId === participant.studentId);
